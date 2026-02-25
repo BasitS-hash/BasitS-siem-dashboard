@@ -1,0 +1,75 @@
+app:
+  name: "SIEM Dashboard"
+  host: "0.0.0.0"
+  port: 8050
+  debug: true
+  secret_key: "change-this-to-a-random-secret-key"
+
+database:
+  uri: "sqlite:///siem.db"
+  # For PostgreSQL: "postgresql://username:password@localhost/siem_db"
+
+log_sources:
+  - name: "System Logs"
+    path: "./logs/system.log"
+    type: "syslog"
+    enabled: true
+  - name: "Web Server Logs"
+    path: "./logs/access.log"
+    type: "apache"
+    enabled: true
+  - name: "Application Logs"
+    path: "./logs/app.log"
+    type: "json"
+    enabled: true
+  - name: "Security Logs"
+    path: "./logs/security.log"
+    type: "security"
+    enabled: true
+
+threat_detection:
+  enabled: true
+  rules:
+    - name: "Brute Force Detection"
+      type: "failed_login"
+      threshold: 5
+      time_window: 300  # seconds
+      severity: "high"
+    - name: "SQL Injection Detection"
+      type: "sql_injection"
+      patterns:
+        - "(?i)(union.*select)"
+        - "(?i)(select.*from.*where)"
+        - "(?i)(drop.*table)"
+        - "(?i)(insert.*into)"
+      severity: "critical"
+    - name: "XSS Detection"
+      type: "xss"
+      patterns:
+        - "(?i)(<script.*?>)"
+        - "(?i)(javascript:)"
+        - "(?i)(onerror=)"
+      severity: "high"
+    - name: "Port Scan Detection"
+      type: "port_scan"
+      threshold: 10
+      time_window: 60
+      severity: "medium"
+    - name: "Unusual Traffic Volume"
+      type: "traffic_anomaly"
+      threshold_multiplier: 3.0
+      severity: "medium"
+
+compliance:
+  frameworks:
+    - "PCI-DSS"
+    - "HIPAA"
+    - "GDPR"
+    - "SOC2"
+  reporting_schedule: "daily"  # daily, weekly, monthly
+  retention_days: 90
+
+alerts:
+  email_notifications: false
+  slack_notifications: false
+  syslog_forwarding: false
