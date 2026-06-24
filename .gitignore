@@ -179,3 +179,24 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+# SIEM Dashboard specific
+.env
+*.db
+*.sqlite
+*.sqlite3
+siem.db
+logs/*
+!logs/.gitkeep
+instance/
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Test artifacts
+.pytest_cache/
+coverage.xml
+htmlcov/
