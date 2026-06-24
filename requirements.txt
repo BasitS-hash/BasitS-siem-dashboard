@@ -19,7 +19,7 @@ PyYAML==6.0.3
 requests==2.33.0
 
 # Production server
-gunicorn==22.0.0
+gunicorn==26.0.0
 
 # Scheduling
 APScheduler==3.10.4
