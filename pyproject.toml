@@ -1,0 +1,27 @@
+[tool.ruff]
+target-version = "py38"
+line-length = 100
+exclude = ["venv", ".venv", "tests/__init__.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "S", "B", "UP"]
+# S101 assert in tests, S311 random in generate_sample_data, S324 md5 sha1
+ignore = ["S101", "S311", "S324", "S603", "S607", "N803", "N806", "B007", "UP007"]
+
+[tool.ruff.lint.per-file-ignores]
+"generate_sample_data.py" = ["S311"]
+"tests/*" = ["S101", "S106"]
+
+[tool.bandit]
+exclude_dirs = ["tests", "venv", ".venv"]
+skips = ["B101"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[tool.coverage.run]
+source = ["."]
+omit = ["venv/*", ".venv/*", "tests/*", "generate_sample_data.py", "start.bat"]

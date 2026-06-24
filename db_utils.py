@@ -1,8 +1,8 @@
 """
 Database initialization and management utilities
 """
-from app import server, db
-from models import LogEntry, ThreatAlert, ComplianceReport, SystemMetrics
+from app import db, server
+from models import ComplianceReport, LogEntry, ThreatAlert
 
 
 def init_db():
@@ -26,7 +26,7 @@ def show_stats():
         log_count = db.session.query(LogEntry).count()
         alert_count = db.session.query(ThreatAlert).count()
         report_count = db.session.query(ComplianceReport).count()
-        
+
         print("\n📊 Database Statistics:")
         print(f"   Log Entries: {log_count:,}")
         print(f"   Threat Alerts: {alert_count:,}")
@@ -36,13 +36,13 @@ def show_stats():
 
 if __name__ == '__main__':
     import sys
-    
+
     if len(sys.argv) < 2:
         print("Usage: python db_utils.py [init|reset|stats]")
         sys.exit(1)
-    
+
     command = sys.argv[1]
-    
+
     if command == 'init':
         init_db()
     elif command == 'reset':
