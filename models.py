@@ -2,6 +2,7 @@
 SIEM Dashboard - Database Models
 """
 from datetime import datetime
+
 from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
@@ -10,7 +11,7 @@ db = SQLAlchemy()
 class LogEntry(db.Model):
     """Store raw log entries"""
     __tablename__ = 'log_entries'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     source = db.Column(db.String(100), index=True)
@@ -22,7 +23,7 @@ class LogEntry(db.Model):
     username = db.Column(db.String(100), index=True)
     parsed_data = db.Column(db.JSON)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -40,7 +41,7 @@ class LogEntry(db.Model):
 class ThreatAlert(db.Model):
     """Store detected threats and alerts"""
     __tablename__ = 'threat_alerts'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     alert_type = db.Column(db.String(100), index=True)
@@ -52,12 +53,12 @@ class ThreatAlert(db.Model):
     rule_name = db.Column(db.String(200))
     status = db.Column(db.String(20), default='open', index=True)  # open, investigating, resolved, false_positive
     confidence = db.Column(db.Float)
-    metadata = db.Column(db.JSON)
+    alert_metadata = db.Column(db.JSON)  # renamed from 'metadata' — reserved by SQLAlchemy
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     resolved_at = db.Column(db.DateTime)
     resolved_by = db.Column(db.String(100))
     notes = db.Column(db.Text)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -71,14 +72,14 @@ class ThreatAlert(db.Model):
             'rule_name': self.rule_name,
             'status': self.status,
             'confidence': self.confidence,
-            'metadata': self.metadata
+            'metadata': self.alert_metadata,
         }
 
 
 class ComplianceReport(db.Model):
     """Store compliance reports"""
     __tablename__ = 'compliance_reports'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     framework = db.Column(db.String(50), index=True)
     report_date = db.Column(db.DateTime, default=datetime.utcnow, index=True)
@@ -89,7 +90,7 @@ class ComplianceReport(db.Model):
     details = db.Column(db.JSON)
     recommendations = db.Column(db.JSON)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -107,18 +108,18 @@ class ComplianceReport(db.Model):
 class SystemMetrics(db.Model):
     """Store system metrics and statistics"""
     __tablename__ = 'system_metrics'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     metric_type = db.Column(db.String(50), index=True)
     metric_value = db.Column(db.Float)
-    metadata = db.Column(db.JSON)
-    
+    metric_metadata = db.Column(db.JSON)  # renamed from 'metadata' — reserved by SQLAlchemy
+
     def to_dict(self):
         return {
             'id': self.id,
             'timestamp': self.timestamp.isoformat() if self.timestamp else None,
             'metric_type': self.metric_type,
             'metric_value': self.metric_value,
-            'metadata': self.metadata
+            'metadata': self.metric_metadata,
         }

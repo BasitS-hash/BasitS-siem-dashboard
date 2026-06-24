@@ -2,8 +2,9 @@ app:
   name: "SIEM Dashboard"
   host: "0.0.0.0"
   port: 8050
-  debug: true
-  secret_key: "change-this-to-a-random-secret-key"
+  debug: false
+  # secret_key is intentionally absent here.
+  # Set the SECRET_KEY environment variable instead (see .env.example).
 
 database:
   uri: "sqlite:///siem.db"

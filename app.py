@@ -1,33 +1,56 @@
 """
 SIEM Dashboard - Main Application
 """
+# dotenv must be loaded before any other import that reads os.environ at module level.
+# The noqa markers suppress E402 (module-level import not at top of file) for everything
+# that follows; this is intentional — load_dotenv() must run first.
 import os
-import yaml
-from datetime import datetime, timedelta
-from flask import Flask, render_template
-import dash
-from dash import dcc, html, Input, Output, State
-import dash_bootstrap_components as dbc
-import plotly.graph_objs as go
-import plotly.express as px
-from sqlalchemy import func
-import pandas as pd
+from datetime import datetime, timedelta  # noqa: E402
 
-from models import db, LogEntry, ThreatAlert, ComplianceReport, SystemMetrics
-from log_parser import LogParser
-from threat_detector import ThreatDetector
-from compliance import ComplianceChecker
+import dash  # noqa: E402
+import dash_bootstrap_components as dbc  # noqa: E402
+import pandas as pd  # noqa: E402
+import plotly.graph_objs as go  # noqa: E402
+import yaml  # noqa: E402
+from dash import Input, Output, dcc, html  # noqa: E402
+from dotenv import load_dotenv  # noqa: E402
+from flask import Flask  # noqa: E402
+from sqlalchemy import func  # noqa: E402
 
+from compliance import ComplianceChecker  # noqa: E402
+from log_parser import LogParser  # noqa: E402
+from models import ComplianceReport, LogEntry, ThreatAlert, db  # noqa: E402
+from threat_detector import ThreatDetector  # noqa: E402
+
+# Load .env file if present (development convenience — in production use real env vars)
+load_dotenv()
 
 # Load configuration
-with open('config.yaml', 'r') as f:
+with open('config.yaml') as f:
     config = yaml.safe_load(f)
+
+# Resolve secrets from environment variables (env vars take precedence over config.yaml)
+_secret_key = os.environ.get('SECRET_KEY') or config['app'].get('secret_key', '')
+if not _secret_key or _secret_key == 'change-this-to-a-random-secret-key':
+    import warnings
+    warnings.warn(
+        "SECRET_KEY is not set or is still the placeholder value. "
+        "Set the SECRET_KEY environment variable before deploying.",
+        stacklevel=1,
+    )
+    _secret_key = 'dev-only-insecure-key-do-not-use-in-production'
+
+_db_uri = (
+    os.environ.get('DATABASE_URI')
+    or os.environ.get('DATABASE_URL')
+    or config['database']['uri']
+)
 
 # Initialize Flask app
 server = Flask(__name__)
-server.config['SQLALCHEMY_DATABASE_URI'] = config['database']['uri']
+server.config['SQLALCHEMY_DATABASE_URI'] = _db_uri
 server.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-server.config['SECRET_KEY'] = config['app'].get('secret_key', 'dev-secret-key')
+server.config['SECRET_KEY'] = _secret_key
 
 # Initialize database
 db.init_app(server)
@@ -54,7 +77,7 @@ app.layout = dbc.Container([
             html.Hr()
         ])
     ]),
-    
+
     # Summary Cards
     dbc.Row([
         dbc.Col([
@@ -66,7 +89,7 @@ app.layout = dbc.Container([
                 ])
             ], className="mb-4")
         ], width=3),
-        
+
         dbc.Col([
             dbc.Card([
                 dbc.CardBody([
@@ -76,7 +99,7 @@ app.layout = dbc.Container([
                 ])
             ], className="mb-4")
         ], width=3),
-        
+
         dbc.Col([
             dbc.Card([
                 dbc.CardBody([
@@ -86,7 +109,7 @@ app.layout = dbc.Container([
                 ])
             ], className="mb-4")
         ], width=3),
-        
+
         dbc.Col([
             dbc.Card([
                 dbc.CardBody([
@@ -97,7 +120,7 @@ app.layout = dbc.Container([
             ], className="mb-4")
         ], width=3),
     ]),
-    
+
     # Tabs for different views
     dbc.Tabs([
         # Overview Tab
@@ -111,7 +134,7 @@ app.layout = dbc.Container([
                         ])
                     ], className="mt-3")
                 ], width=8),
-                
+
                 dbc.Col([
                     dbc.Card([
                         dbc.CardHeader("Severity Distribution"),
@@ -121,7 +144,7 @@ app.layout = dbc.Container([
                     ], className="mt-3")
                 ], width=4),
             ]),
-            
+
             dbc.Row([
                 dbc.Col([
                     dbc.Card([
@@ -131,7 +154,7 @@ app.layout = dbc.Container([
                         ])
                     ], className="mt-3")
                 ], width=6),
-                
+
                 dbc.Col([
                     dbc.Card([
                         dbc.CardHeader("Log Types Distribution"),
@@ -142,7 +165,7 @@ app.layout = dbc.Container([
                 ], width=6),
             ])
         ]),
-        
+
         # Threat Detection Tab
         dbc.Tab(label="Threat Detection", children=[
             dbc.Row([
@@ -155,7 +178,7 @@ app.layout = dbc.Container([
                     ], className="mt-3")
                 ], width=12),
             ]),
-            
+
             dbc.Row([
                 dbc.Col([
                     dbc.Card([
@@ -165,7 +188,7 @@ app.layout = dbc.Container([
                         ])
                     ], className="mt-3")
                 ], width=6),
-                
+
                 dbc.Col([
                     dbc.Card([
                         dbc.CardHeader("Severity Breakdown"),
@@ -175,7 +198,7 @@ app.layout = dbc.Container([
                     ], className="mt-3")
                 ], width=6),
             ]),
-            
+
             dbc.Row([
                 dbc.Col([
                     dbc.Card([
@@ -187,7 +210,7 @@ app.layout = dbc.Container([
                 ], width=12),
             ])
         ]),
-        
+
         # Compliance Tab
         dbc.Tab(label="Compliance Reports", children=[
             dbc.Row([
@@ -200,7 +223,7 @@ app.layout = dbc.Container([
                     ], className="mt-3")
                 ], width=12),
             ]),
-            
+
             dbc.Row([
                 dbc.Col([
                     dbc.Card([
@@ -223,7 +246,7 @@ app.layout = dbc.Container([
                 ], width=12),
             ])
         ]),
-        
+
         # Analytics Tab
         dbc.Tab(label="Analytics", children=[
             dbc.Row([
@@ -236,7 +259,7 @@ app.layout = dbc.Container([
                     ], className="mt-3")
                 ], width=12),
             ]),
-            
+
             dbc.Row([
                 dbc.Col([
                     dbc.Card([
@@ -249,7 +272,7 @@ app.layout = dbc.Container([
             ])
         ])
     ], className="mt-3"),
-    
+
     # Auto-refresh interval
     dcc.Interval(
         id='interval-component',
@@ -275,25 +298,25 @@ def update_summary_cards(n):
         total_logs = db.session.query(LogEntry).filter(
             LogEntry.timestamp >= day_ago
         ).count()
-        
+
         # Active threats
         active_threats = db.session.query(ThreatAlert).filter(
             ThreatAlert.status == 'open'
         ).count()
-        
+
         # Critical alerts in last 24 hours
         critical_alerts = db.session.query(ThreatAlert).filter(
             ThreatAlert.timestamp >= day_ago,
             ThreatAlert.severity == 'critical'
         ).count()
-        
+
         # Average compliance score
         avg_score = db.session.query(func.avg(ComplianceReport.compliance_score)).filter(
             ComplianceReport.report_date >= day_ago
         ).scalar()
-        
+
         compliance_score = f"{avg_score:.1f}%" if avg_score else "N/A"
-        
+
         return f"{total_logs:,}", f"{active_threats}", f"{critical_alerts}", compliance_score
 
 
@@ -305,16 +328,16 @@ def update_log_timeline(n):
     """Update log activity timeline"""
     with server.app_context():
         day_ago = datetime.now() - timedelta(days=1)
-        
+
         logs = db.session.query(
             func.date_trunc('hour', LogEntry.timestamp).label('hour'),
             func.count(LogEntry.id).label('count')
         ).filter(
             LogEntry.timestamp >= day_ago
         ).group_by('hour').order_by('hour').all()
-        
+
         df = pd.DataFrame(logs, columns=['hour', 'count'])
-        
+
         fig = go.Figure()
         fig.add_trace(go.Scatter(
             x=df['hour'],
@@ -323,7 +346,7 @@ def update_log_timeline(n):
             name='Log Count',
             line=dict(color='#00d4ff', width=2)
         ))
-        
+
         fig.update_layout(
             template='plotly_dark',
             xaxis_title='Time',
@@ -331,7 +354,7 @@ def update_log_timeline(n):
             hovermode='x unified',
             margin=dict(l=40, r=40, t=40, b=40)
         )
-        
+
         return fig
 
 
@@ -343,16 +366,16 @@ def update_severity_pie(n):
     """Update severity distribution pie chart"""
     with server.app_context():
         day_ago = datetime.now() - timedelta(days=1)
-        
+
         severity_counts = db.session.query(
             LogEntry.severity,
             func.count(LogEntry.id).label('count')
         ).filter(
             LogEntry.timestamp >= day_ago
         ).group_by(LogEntry.severity).all()
-        
+
         df = pd.DataFrame(severity_counts, columns=['severity', 'count'])
-        
+
         colors = {
             'critical': '#ff0000',
             'error': '#ff6b6b',
@@ -360,18 +383,18 @@ def update_severity_pie(n):
             'info': '#00d4ff',
             'debug': '#888888'
         }
-        
+
         fig = go.Figure(data=[go.Pie(
             labels=df['severity'],
             values=df['count'],
             marker=dict(colors=[colors.get(s, '#888888') for s in df['severity']])
         )])
-        
+
         fig.update_layout(
             template='plotly_dark',
             margin=dict(l=20, r=20, t=40, b=20)
         )
-        
+
         return fig
 
 
@@ -383,7 +406,7 @@ def update_top_ips(n):
     """Update top source IPs"""
     with server.app_context():
         day_ago = datetime.now() - timedelta(days=1)
-        
+
         top_ips = db.session.query(
             LogEntry.ip_address,
             func.count(LogEntry.id).label('count')
@@ -391,23 +414,23 @@ def update_top_ips(n):
             LogEntry.timestamp >= day_ago,
             LogEntry.ip_address.isnot(None)
         ).group_by(LogEntry.ip_address).order_by(func.count(LogEntry.id).desc()).limit(10).all()
-        
+
         df = pd.DataFrame(top_ips, columns=['ip_address', 'count'])
-        
+
         fig = go.Figure([go.Bar(
             x=df['count'],
             y=df['ip_address'],
             orientation='h',
             marker=dict(color='#00d4ff')
         )])
-        
+
         fig.update_layout(
             template='plotly_dark',
             xaxis_title='Request Count',
             yaxis_title='IP Address',
             margin=dict(l=40, r=40, t=40, b=40)
         )
-        
+
         return fig
 
 
@@ -419,29 +442,29 @@ def update_log_types(n):
     """Update log types distribution"""
     with server.app_context():
         day_ago = datetime.now() - timedelta(days=1)
-        
+
         log_types = db.session.query(
             LogEntry.log_type,
             func.count(LogEntry.id).label('count')
         ).filter(
             LogEntry.timestamp >= day_ago
         ).group_by(LogEntry.log_type).all()
-        
+
         df = pd.DataFrame(log_types, columns=['log_type', 'count'])
-        
+
         fig = go.Figure([go.Bar(
             x=df['log_type'],
             y=df['count'],
             marker=dict(color='#00d4ff')
         )])
-        
+
         fig.update_layout(
             template='plotly_dark',
             xaxis_title='Log Type',
             yaxis_title='Count',
             margin=dict(l=40, r=40, t=40, b=40)
         )
-        
+
         return fig
 
 
@@ -453,7 +476,7 @@ def update_threat_timeline(n):
     """Update threat alert timeline"""
     with server.app_context():
         week_ago = datetime.now() - timedelta(days=7)
-        
+
         threats = db.session.query(
             func.date_trunc('day', ThreatAlert.timestamp).label('day'),
             ThreatAlert.severity,
@@ -461,11 +484,11 @@ def update_threat_timeline(n):
         ).filter(
             ThreatAlert.timestamp >= week_ago
         ).group_by('day', ThreatAlert.severity).order_by('day').all()
-        
+
         df = pd.DataFrame(threats, columns=['day', 'severity', 'count'])
-        
+
         fig = go.Figure()
-        
+
         for severity in df['severity'].unique():
             severity_data = df[df['severity'] == severity]
             fig.add_trace(go.Scatter(
@@ -475,7 +498,7 @@ def update_threat_timeline(n):
                 name=severity,
                 stackgroup='one'
             ))
-        
+
         fig.update_layout(
             template='plotly_dark',
             xaxis_title='Date',
@@ -483,7 +506,7 @@ def update_threat_timeline(n):
             hovermode='x unified',
             margin=dict(l=40, r=40, t=40, b=40)
         )
-        
+
         return fig
 
 
@@ -495,29 +518,29 @@ def update_alert_types(n):
     """Update alert types distribution"""
     with server.app_context():
         week_ago = datetime.now() - timedelta(days=7)
-        
+
         alert_types = db.session.query(
             ThreatAlert.alert_type,
             func.count(ThreatAlert.id).label('count')
         ).filter(
             ThreatAlert.timestamp >= week_ago
         ).group_by(ThreatAlert.alert_type).all()
-        
+
         df = pd.DataFrame(alert_types, columns=['alert_type', 'count'])
-        
+
         fig = go.Figure([go.Bar(
             x=df['alert_type'],
             y=df['count'],
             marker=dict(color='#ff6b6b')
         )])
-        
+
         fig.update_layout(
             template='plotly_dark',
             xaxis_title='Alert Type',
             yaxis_title='Count',
             margin=dict(l=40, r=40, t=40, b=40)
         )
-        
+
         return fig
 
 
@@ -529,34 +552,34 @@ def update_threat_severity(n):
     """Update threat severity breakdown"""
     with server.app_context():
         week_ago = datetime.now() - timedelta(days=7)
-        
+
         severity_counts = db.session.query(
             ThreatAlert.severity,
             func.count(ThreatAlert.id).label('count')
         ).filter(
             ThreatAlert.timestamp >= week_ago
         ).group_by(ThreatAlert.severity).all()
-        
+
         df = pd.DataFrame(severity_counts, columns=['severity', 'count'])
-        
+
         colors = {
             'critical': '#ff0000',
             'high': '#ff6b6b',
             'medium': '#ffa500',
             'low': '#ffff00'
         }
-        
+
         fig = go.Figure(data=[go.Pie(
             labels=df['severity'],
             values=df['count'],
             marker=dict(colors=[colors.get(s, '#888888') for s in df['severity']])
         )])
-        
+
         fig.update_layout(
             template='plotly_dark',
             margin=dict(l=20, r=20, t=40, b=20)
         )
-        
+
         return fig
 
 
@@ -570,10 +593,10 @@ def update_recent_alerts(n):
         recent_alerts = db.session.query(ThreatAlert).order_by(
             ThreatAlert.timestamp.desc()
         ).limit(10).all()
-        
+
         if not recent_alerts:
             return html.P("No recent alerts", className="text-muted")
-        
+
         rows = []
         for alert in recent_alerts:
             badge_color = {
@@ -582,7 +605,7 @@ def update_recent_alerts(n):
                 'medium': 'info',
                 'low': 'secondary'
             }.get(alert.severity, 'secondary')
-            
+
             rows.append(html.Tr([
                 html.Td(alert.timestamp.strftime('%Y-%m-%d %H:%M:%S') if alert.timestamp else 'N/A'),
                 html.Td(alert.alert_type),
@@ -591,7 +614,7 @@ def update_recent_alerts(n):
                 html.Td(alert.description[:50] + '...' if len(alert.description) > 50 else alert.description),
                 html.Td(dbc.Badge(alert.status, color='success' if alert.status == 'resolved' else 'warning'))
             ]))
-        
+
         table = dbc.Table([
             html.Thead(html.Tr([
                 html.Th("Timestamp"),
@@ -603,7 +626,7 @@ def update_recent_alerts(n):
             ])),
             html.Tbody(rows)
         ], bordered=True, hover=True, responsive=True, striped=True)
-        
+
         return table
 
 
@@ -617,12 +640,12 @@ def update_compliance_scores(n):
         # Get latest report for each framework
         frameworks = ['PCI-DSS', 'HIPAA', 'GDPR', 'SOC2']
         scores = []
-        
+
         for framework in frameworks:
             report = db.session.query(ComplianceReport).filter(
                 ComplianceReport.framework == framework
             ).order_by(ComplianceReport.report_date.desc()).first()
-            
+
             if report:
                 scores.append({
                     'framework': framework,
@@ -637,9 +660,9 @@ def update_compliance_scores(n):
                     'passed': 0,
                     'failed': 0
                 })
-        
+
         df = pd.DataFrame(scores)
-        
+
         fig = go.Figure([go.Bar(
             x=df['framework'],
             y=df['score'],
@@ -647,7 +670,7 @@ def update_compliance_scores(n):
             text=df['score'].round(1),
             textposition='auto'
         )])
-        
+
         fig.update_layout(
             template='plotly_dark',
             xaxis_title='Framework',
@@ -655,7 +678,7 @@ def update_compliance_scores(n):
             yaxis_range=[0, 100],
             margin=dict(l=40, r=40, t=40, b=40)
         )
-        
+
         return fig
 
 
@@ -670,12 +693,12 @@ def update_compliance_details(framework, n):
         report = db.session.query(ComplianceReport).filter(
             ComplianceReport.framework == framework
         ).order_by(ComplianceReport.report_date.desc()).first()
-        
+
         if not report:
             return html.P(f"No compliance report available for {framework}", className="text-muted")
-        
+
         details = report.details.get('checks', [])
-        
+
         rows = []
         for check in details:
             badge_color = {
@@ -683,14 +706,14 @@ def update_compliance_details(framework, n):
                 'failed': 'danger',
                 'warning': 'warning'
             }.get(check['status'], 'secondary')
-            
+
             rows.append(html.Tr([
                 html.Td(check['requirement']),
                 html.Td(check.get('description', 'N/A')),
                 html.Td(dbc.Badge(check['status'], color=badge_color)),
                 html.Td(check.get('details', 'N/A'))
             ]))
-        
+
         table = dbc.Table([
             html.Thead(html.Tr([
                 html.Th("Requirement"),
@@ -700,7 +723,7 @@ def update_compliance_details(framework, n):
             ])),
             html.Tbody(rows)
         ], bordered=True, hover=True, responsive=True, striped=True)
-        
+
         summary = html.Div([
             html.H5(f"{framework} Compliance Report"),
             html.P([
@@ -712,13 +735,13 @@ def update_compliance_details(framework, n):
             html.Hr(),
             table
         ])
-        
+
         if report.recommendations:
             summary.children.append(html.Div([
                 html.H6("Recommendations:", className="mt-3"),
                 html.Ul([html.Li(rec) for rec in report.recommendations])
             ]))
-        
+
         return summary
 
 
@@ -730,7 +753,7 @@ def update_geo_map(n):
     """Update geographic distribution (mock data for demonstration)"""
     with server.app_context():
         day_ago = datetime.now() - timedelta(days=1)
-        
+
         top_ips = db.session.query(
             LogEntry.ip_address,
             func.count(LogEntry.id).label('count')
@@ -738,7 +761,7 @@ def update_geo_map(n):
             LogEntry.timestamp >= day_ago,
             LogEntry.ip_address.isnot(None)
         ).group_by(LogEntry.ip_address).order_by(func.count(LogEntry.id).desc()).limit(20).all()
-        
+
         # Mock geographic data (in production, use IP geolocation service)
         import random
         geo_data = []
@@ -749,9 +772,9 @@ def update_geo_map(n):
                 'lat': random.uniform(-90, 90),
                 'lon': random.uniform(-180, 180)
             })
-        
+
         df = pd.DataFrame(geo_data)
-        
+
         if df.empty:
             fig = go.Figure()
         else:
@@ -768,7 +791,7 @@ def update_geo_map(n):
                     colorbar=dict(title="Requests")
                 )
             ))
-        
+
         fig.update_layout(
             template='plotly_dark',
             geo=dict(
@@ -779,7 +802,7 @@ def update_geo_map(n):
             ),
             margin=dict(l=0, r=0, t=40, b=0)
         )
-        
+
         return fig
 
 
@@ -791,26 +814,26 @@ def update_hourly_pattern(n):
     """Update hourly traffic pattern"""
     with server.app_context():
         week_ago = datetime.now() - timedelta(days=7)
-        
+
         hourly_data = db.session.query(
             func.extract('hour', LogEntry.timestamp).label('hour'),
             func.count(LogEntry.id).label('count')
         ).filter(
             LogEntry.timestamp >= week_ago
         ).group_by('hour').order_by('hour').all()
-        
+
         df = pd.DataFrame(hourly_data, columns=['hour', 'count'])
-        
+
         # Ensure all hours are present
         all_hours = pd.DataFrame({'hour': range(24)})
         df = all_hours.merge(df, on='hour', how='left').fillna(0)
-        
+
         fig = go.Figure([go.Bar(
             x=df['hour'],
             y=df['count'],
             marker=dict(color='#00d4ff')
         )])
-        
+
         fig.update_layout(
             template='plotly_dark',
             xaxis_title='Hour of Day',
@@ -818,14 +841,14 @@ def update_hourly_pattern(n):
             xaxis=dict(tickmode='linear', tick0=0, dtick=1),
             margin=dict(l=40, r=40, t=40, b=40)
         )
-        
+
         return fig
 
 
 if __name__ == '__main__':
     with server.app_context():
         db.create_all()
-    
+
     app.run_server(
         host=config['app']['host'],
         port=config['app']['port'],
