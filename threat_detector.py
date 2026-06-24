@@ -92,7 +92,10 @@ class ThreatDetector:
             return ThreatAlert(
                 alert_type='Brute Force Attack',
                 severity=rule.get('severity', 'high'),
-                description=f"Detected {len(self.event_cache[key])} failed login attempts within {time_window} seconds",
+                description=(
+                    f"Detected {len(self.event_cache[key])} failed login"
+                    f" attempts within {time_window} seconds"
+                ),
                 source_ip=ip_address,
                 username=username,
                 rule_name=rule.get('name', 'Brute Force Detection'),
@@ -115,7 +118,9 @@ class ThreatDetector:
         patterns = rule.get('patterns', [])
 
         for pattern in patterns:
-            if re.search(pattern, message, re.IGNORECASE) or re.search(pattern, path, re.IGNORECASE):
+            msg_match = re.search(pattern, message, re.IGNORECASE)
+            path_match = re.search(pattern, path, re.IGNORECASE)
+            if msg_match or path_match:
                 return ThreatAlert(
                     alert_type='SQL Injection Attempt',
                     severity=rule.get('severity', 'critical'),
@@ -141,7 +146,9 @@ class ThreatDetector:
         patterns = rule.get('patterns', [])
 
         for pattern in patterns:
-            if re.search(pattern, message, re.IGNORECASE) or re.search(pattern, path, re.IGNORECASE):
+            msg_match = re.search(pattern, message, re.IGNORECASE)
+            path_match = re.search(pattern, path, re.IGNORECASE)
+            if msg_match or path_match:
                 return ThreatAlert(
                     alert_type='XSS Attempt',
                     severity=rule.get('severity', 'high'),
@@ -187,7 +194,10 @@ class ThreatDetector:
             return ThreatAlert(
                 alert_type='Port Scan',
                 severity=rule.get('severity', 'medium'),
-                description=f"Detected {len(self.event_cache[key])} connection attempts within {time_window} seconds",
+                description=(
+                    f"Detected {len(self.event_cache[key])} connection"
+                    f" attempts within {time_window} seconds"
+                ),
                 source_ip=ip_address,
                 rule_name=rule.get('name', 'Port Scan Detection'),
                 confidence=0.7,
@@ -232,7 +242,10 @@ class ThreatDetector:
             return ThreatAlert(
                 alert_type='Traffic Anomaly',
                 severity=rule.get('severity', 'medium'),
-                description=f"Unusual traffic volume: {len(current_events)} requests in 5 minutes (baseline: {avg_traffic:.1f})",
+                description=(
+                    f"Unusual traffic volume: {len(current_events)} requests"
+                    f" in 5 minutes (baseline: {avg_traffic:.1f})"
+                ),
                 source_ip=ip_address,
                 rule_name=rule.get('name', 'Unusual Traffic Volume'),
                 confidence=0.6,

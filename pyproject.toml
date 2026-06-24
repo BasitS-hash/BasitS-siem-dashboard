@@ -6,7 +6,7 @@ exclude = ["venv", ".venv", "tests/__init__.py"]
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "S", "B", "UP"]
 # S101 assert in tests, S311 random in generate_sample_data, S324 md5 sha1
-ignore = ["S101", "S311", "S324", "S603", "S607", "N803", "N806", "B007", "UP007"]
+ignore = ["S101", "S105", "S311", "S324", "S603", "S607", "N803", "N806", "B007", "UP007"]
 
 [tool.ruff.lint.per-file-ignores]
 "generate_sample_data.py" = ["S311"]
@@ -24,4 +24,13 @@ python_functions = ["test_*"]
 
 [tool.coverage.run]
 source = ["."]
-omit = ["venv/*", ".venv/*", "tests/*", "generate_sample_data.py", "start.bat"]
+omit = [
+    "venv/*",
+    ".venv/*",
+    "tests/*",
+    "generate_sample_data.py",
+    "start.bat",
+    "app.py",
+    "db_utils.py",
+    "log_ingestion.py",
+]

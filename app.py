@@ -606,13 +606,23 @@ def update_recent_alerts(n):
                 'low': 'secondary'
             }.get(alert.severity, 'secondary')
 
+            ts = (
+                alert.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+                if alert.timestamp else 'N/A'
+            )
+            desc = (
+                alert.description[:50] + '...'
+                if len(alert.description) > 50
+                else alert.description
+            )
+            status_color = 'success' if alert.status == 'resolved' else 'warning'
             rows.append(html.Tr([
-                html.Td(alert.timestamp.strftime('%Y-%m-%d %H:%M:%S') if alert.timestamp else 'N/A'),
+                html.Td(ts),
                 html.Td(alert.alert_type),
                 html.Td(dbc.Badge(alert.severity, color=badge_color)),
                 html.Td(alert.source_ip or 'N/A'),
-                html.Td(alert.description[:50] + '...' if len(alert.description) > 50 else alert.description),
-                html.Td(dbc.Badge(alert.status, color='success' if alert.status == 'resolved' else 'warning'))
+                html.Td(desc),
+                html.Td(dbc.Badge(alert.status, color=status_color))
             ]))
 
         table = dbc.Table([

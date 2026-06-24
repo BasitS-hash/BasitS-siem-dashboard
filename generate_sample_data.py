@@ -38,12 +38,16 @@ class SampleDataGenerator:
         process = random.choice(['sshd', 'kernel', 'systemd', 'cron', 'nginx'])
         pid = random.randint(1000, 9999)
 
+        rand_ip = random.choice(self.ip_addresses)
+        rand_port = random.randint(1024, 65535)
+        rand_user = random.choice(self.usernames)
+        rand_ip2 = random.choice(self.ip_addresses)
         messages = [
-            f"Connection from {random.choice(self.ip_addresses)} port {random.randint(1024, 65535)}",
-            f"User {random.choice(self.usernames)} logged in",
+            f"Connection from {rand_ip} port {rand_port}",
+            f"User {rand_user} logged in",
             "Starting service...",
             "Service stopped",
-            f"Failed password for {random.choice(self.usernames)} from {random.choice(self.ip_addresses)}"
+            f"Failed password for {rand_user} from {rand_ip2}"
         ]
 
         message = random.choice(messages)
@@ -62,7 +66,8 @@ class SampleDataGenerator:
         status = random.choice([200, 200, 200, 200, 301, 404, 500, 403])
         size = random.randint(100, 50000)
 
-        return f'{ip} - {username} [{timestamp.strftime("%d/%b/%Y:%H:%M:%S +0000")}] "{method} {path} HTTP/1.1" {status} {size}\n'
+        ts_str = timestamp.strftime("%d/%b/%Y:%H:%M:%S +0000")
+        return f'{ip} - {username} [{ts_str}] "{method} {path} HTTP/1.1" {status} {size}\n'
 
     def generate_json_log(self, timestamp=None):
         """Generate JSON format log entry"""
@@ -92,12 +97,17 @@ class SampleDataGenerator:
         if not timestamp:
             timestamp = datetime.now()
 
+        ts = timestamp.isoformat()
+        sec_user = random.choice(self.usernames)
+        sec_ip = random.choice(self.ip_addresses)
+        atk_ip = random.choice(self.attack_ips)
+        atk_port = random.randint(1, 65535)
         events = [
-            f"{timestamp.isoformat()} SECURITY: Failed login attempt for user {random.choice(self.usernames)} from {random.choice(self.ip_addresses)}",
-            f"{timestamp.isoformat()} SECURITY: Successful authentication for {random.choice(self.usernames)}",
-            f"{timestamp.isoformat()} FIREWALL: Blocked connection from {random.choice(self.attack_ips)} to port {random.randint(1, 65535)}",
-            f"{timestamp.isoformat()} SECURITY: Permission denied for {random.choice(self.usernames)} accessing /admin",
-            f"{timestamp.isoformat()} SECURITY: Session created for user {random.choice(self.usernames)}"
+            f"{ts} SECURITY: Failed login attempt for user {sec_user} from {sec_ip}",
+            f"{ts} SECURITY: Successful authentication for {sec_user}",
+            f"{ts} FIREWALL: Blocked connection from {atk_ip} to port {atk_port}",
+            f"{ts} SECURITY: Permission denied for {sec_user} accessing /admin",
+            f"{ts} SECURITY: Session created for user {sec_user}"
         ]
 
         return random.choice(events) + '\n'
@@ -110,13 +120,16 @@ class SampleDataGenerator:
         attack_ip = random.choice(self.attack_ips)
         attack_user = random.choice(self.usernames)
         for i in range(10):
-            timestamp = datetime.now() - timedelta(seconds=10-i)
+            timestamp = datetime.now() - timedelta(seconds=10 - i)
+            ts = timestamp.isoformat()
             logs.append(
-                f"{timestamp.isoformat()} SECURITY: Failed login attempt for user {attack_user} from {attack_ip}\n"
+                f"{ts} SECURITY: Failed login attempt"
+                f" for user {attack_user} from {attack_ip}\n"
             )
 
         # SQL injection attempt
         timestamp = datetime.now()
+        ts_str = timestamp.strftime("%d/%b/%Y:%H:%M:%S +0000")
         sql_payloads = [
             "' OR '1'='1",
             "UNION SELECT * FROM users",
@@ -124,7 +137,8 @@ class SampleDataGenerator:
         ]
         for payload in sql_payloads:
             logs.append(
-                f'{attack_ip} - - [{timestamp.strftime("%d/%b/%Y:%H:%M:%S +0000")}] "GET /api/users?id={payload} HTTP/1.1" 400 0\n'
+                f'{attack_ip} - - [{ts_str}]'
+                f' "GET /api/users?id={payload} HTTP/1.1" 400 0\n'
             )
 
         # XSS attempt
@@ -135,7 +149,8 @@ class SampleDataGenerator:
         ]
         for payload in xss_payloads:
             logs.append(
-                f'{attack_ip} - - [{timestamp.strftime("%d/%b/%Y:%H:%M:%S +0000")}] "GET /search?q={payload} HTTP/1.1" 400 0\n'
+                f'{attack_ip} - - [{ts_str}]'
+                f' "GET /search?q={payload} HTTP/1.1" 400 0\n'
             )
 
         return logs

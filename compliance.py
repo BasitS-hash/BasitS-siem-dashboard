@@ -15,7 +15,9 @@ class ComplianceChecker:
         self.frameworks = config.get('compliance', {}).get('frameworks', [])
         self.retention_days = config.get('compliance', {}).get('retention_days', 90)
 
-    def generate_report(self, framework: str, start_date: datetime, end_date: datetime) -> ComplianceReport:
+    def generate_report(
+        self, framework: str, start_date: datetime, end_date: datetime
+    ) -> ComplianceReport:
         """Generate a compliance report for a specific framework"""
         if framework == 'PCI-DSS':
             return self._check_pci_dss(start_date, end_date)
@@ -84,7 +86,10 @@ class ComplianceChecker:
             'requirement': '10.7 - Log Retention',
             'description': 'Audit log history must be retained for at least one year',
             'status': 'passed' if retention_ok else 'warning',
-            'details': f'Log retention: {days_retained if oldest_log else 0} days (minimum: 90 days)'
+            'details': (
+                f'Log retention: {days_retained if oldest_log else 0} days'
+                ' (minimum: 90 days)'
+            )
         })
 
         # Calculate compliance score
@@ -120,7 +125,10 @@ class ComplianceChecker:
 
         checks.append({
             'requirement': '164.312(b) - Audit Controls',
-            'description': 'Implement hardware, software, and/or procedural mechanisms that record and examine activity',
+            'description': (
+                'Implement hardware, software, and/or procedural mechanisms'
+                ' that record and examine activity'
+            ),
             'status': 'passed' if log_count > 0 else 'failed',
             'details': f'System generated {log_count} audit log entries'
         })
@@ -309,7 +317,9 @@ class ComplianceChecker:
             recommendations=recommendations
         )
 
-    def _generic_report(self, framework: str, start_date: datetime, end_date: datetime) -> ComplianceReport:
+    def _generic_report(
+        self, framework: str, start_date: datetime, end_date: datetime
+    ) -> ComplianceReport:
         """Generate a generic compliance report"""
         log_count = db.session.query(LogEntry).filter(
             LogEntry.timestamp >= start_date,

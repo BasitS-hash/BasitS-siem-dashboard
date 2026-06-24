@@ -51,7 +51,8 @@ class ThreatAlert(db.Model):
     destination_ip = db.Column(db.String(45))
     username = db.Column(db.String(100), index=True)
     rule_name = db.Column(db.String(200))
-    status = db.Column(db.String(20), default='open', index=True)  # open, investigating, resolved, false_positive
+    # open, investigating, resolved, false_positive
+    status = db.Column(db.String(20), default='open', index=True)
     confidence = db.Column(db.Float)
     alert_metadata = db.Column(db.JSON)  # renamed from 'metadata' — reserved by SQLAlchemy
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
